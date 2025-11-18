@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController; // Import the new controller
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,9 +14,13 @@ use App\Http\Controllers\UserController; // Import the new controller
 // Public routes
 Route::post('/admin-login', [AuthController::class, 'adminLogin']);
 Route::post('/user-login', [AuthController::class, 'userLogin']);
-Route::post('/register', [AuthController::class, 'register']); // added for registering -kirk
+Route::post('/register', [AuthController::class, 'register']);
 
-// Protected routes that require a token
+// Protected routes (Require Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/users', [UserController::class, 'index']);
+    // User Management
+    Route::get('/users', [UserController::class, 'index']);       // List
+    Route::get('/users/{id}', [UserController::class, 'show']);   // View
+    Route::put('/users/{id}', [UserController::class, 'update']); // Edit
+    Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete
 });
