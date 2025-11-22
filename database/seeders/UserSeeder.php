@@ -95,5 +95,34 @@ class UserSeeder extends Seeder
                 'updated_at' => now()
             ],
         ]);
+
+        // Create 5 more random users for testing reports
+        for ($i = 1; $i <= 5; $i++) {
+            DB::table('users')->insert([
+                'first_name' => 'TestUser' . $i,
+                'last_name' => 'Lastname' . $i,
+                'display_name' => 'Test User ' . $i,
+                'email' => 'user' . $i . '@test.com',
+                'password' => 'User1234',
+                'role' => 'user',
+                'status' => 'active',
+                'is_master_admin' => false,
+                'plan' => 'free',
+                'location' => 'Cebu City',
+                'owner_bio' => 'Just a test user.',
+                'signup_date' => now(),
+                'last_seen' => now(),
+                'dog_name' => 'Doggo ' . $i,
+                'dog_breed' => 'Mixed',
+                'dog_age' => rand(1, 10),
+                'dog_sex' => rand(0, 1) ? 'male' : 'female',
+                'dog_size' => 'medium',
+                'dog_bio' => 'Woof!',
+                'dog_avatar' => null,
+                'dog_cover_photo' => null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
     }
 }
