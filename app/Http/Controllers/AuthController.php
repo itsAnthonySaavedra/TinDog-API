@@ -57,6 +57,8 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'adminId' => $admin->id,
+                'role' => $admin->role,
+                'is_master_admin' => $admin->is_master_admin,
                 'token' => $token
             ]);
 
