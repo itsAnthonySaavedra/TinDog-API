@@ -30,11 +30,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Specifies which origins are allowed to access your API.
-    | 'http://localhost' is for your XAMPP server.
+    | '*' is for testing purposes.
     |
     */
 
-    'allowed_origins' => ['http://localhost', 'http://127.0.0.1'],
+    'allowed_origins' => ['*'],
 
     /*
     |--------------------------------------------------------------------------
