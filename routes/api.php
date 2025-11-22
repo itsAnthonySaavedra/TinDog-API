@@ -23,4 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/{id}', [UserController::class, 'show']);   // View
     Route::put('/users/{id}', [UserController::class, 'update']); // Edit
     Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete
+
+    // Reports
+    Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index']);
+    Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store']); // Create Report
+    Route::put('/reports/{id}', [App\Http\Controllers\ReportController::class, 'update']);
 });
