@@ -42,8 +42,9 @@ class AnalyticsController extends Controller
 
     public function recentActivity()
     {
-        // Get latest 5 users
-        $newUsers = User::where('role', 'user')
+        // 1. Get latest 5 users (Created) - Include Soft Deleted ones so we don't lose the "Joined" log
+        $newUsers = User::withTrashed()
+            ->where('role', 'user')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()
@@ -56,7 +57,22 @@ class AnalyticsController extends Controller
                 ];
             });
 
-        // Get latest 5 reports
+        // 2. Get latest 5 deleted users
+        $deletedUsers = User::onlyTrashed()
+            ->where('role', 'user')
+            ->orderBy('deleted_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'type' => 'delete',
+                    'message' => "User Deleted: {$user->first_name} {$user->last_name} was removed.",
+                    'time' => $user->deleted_at->diffForHumans(),
+                    'timestamp' => $user->deleted_at
+                ];
+            });
+
+        // 3. Get latest 5 reports
         $newReports = Report::with('reportedUser')
             ->orderBy('created_at', 'desc')
             ->take(5)
@@ -71,10 +87,10 @@ class AnalyticsController extends Controller
                 ];
             });
 
-        // Merge and sort
-        $activities = $newUsers->concat($newReports)
+        // Merge all and sort by timestamp descending
+        $activities = $newUsers->concat($deletedUsers)->concat($newReports)
             ->sortByDesc('timestamp')
-            ->take(5)
+            ->take(10) // Take top 10 mixed events
             ->values();
 
         return response()->json([

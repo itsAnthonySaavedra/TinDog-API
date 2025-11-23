@@ -143,6 +143,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password), // Always hash new passwords
             'role' => 'user',
             'status' => 'active',
+            'dog_avatar' => 'https://placedog.net/500/500?id=' . rand(1, 100), // Default random dog image
         ]);
 
         return response()->json([

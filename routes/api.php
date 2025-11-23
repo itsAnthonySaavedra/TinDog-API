@@ -40,4 +40,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // System Settings
     Route::get('/settings', [App\Http\Controllers\SystemSettingController::class, 'index']);
     Route::put('/settings', [App\Http\Controllers\SystemSettingController::class, 'update']);
+    Route::get('/user/dashboard', [App\Http\Controllers\UserDashboardController::class, 'index']);
 });

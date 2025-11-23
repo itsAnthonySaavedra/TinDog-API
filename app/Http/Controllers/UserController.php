@@ -80,6 +80,17 @@ class UserController extends Controller
                 'display_name' => 'nullable|string|max:255',
                 'email'      => 'sometimes|email|unique:users,email,' . $id,
                 'status'     => 'sometimes|string|in:active,suspended,banned',
+                'location'   => 'nullable|string|max:255', // <-- Added Location
+                // Dog Profile Fields
+                'dog_name'   => 'nullable|string|max:255',
+                'dog_breed'  => 'nullable|string|max:255',
+                'dog_age'    => 'nullable|integer|min:0',
+                'dog_sex'    => 'nullable|string|in:male,female',
+                'dog_size'   => 'nullable|string|in:small,medium,large',
+                'dog_bio'    => 'nullable|string',
+                'dog_personalities' => 'nullable|string', // JSON or comma-separated
+                'dog_avatar' => 'nullable|string', // Base64 or URL
+                'owner_avatar' => 'nullable|string', // Owner's photo from registration
             ]);
 
             // 3. Auto-generate Display Name for Standard Users
