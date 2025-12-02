@@ -33,17 +33,19 @@ class UserDashboardController extends Controller
         ];
 
         // 3. Pups Nearby (Random other users)
+        // 3. Pups Nearby (Real users only)
         $pupsNearby = User::where('id', '!=', $user->id)
             ->where('role', 'user')
+            ->whereNotNull('dog_name') // Only show users who have set up their profile
             ->inRandomOrder()
             ->take(3)
             ->get()
             ->map(function ($pup) {
                 return [
                     'id' => $pup->id,
-                    'name' => $pup->dog_name ?? $pup->display_name ?? 'Unknown Pup',
-                    'avatar' => $pup->dog_avatar ?? 'https://placedog.net/500/500?random=' . $pup->id,
-                    'distance' => rand(1, 10) . ' km away', // Mock distance for now
+                    'name' => $pup->dog_name ?? $pup->display_name,
+                    'avatar' => $pup->dog_avatar, 
+                    'distance' => rand(1, 10) . ' km away', // Mock distance is fine for now
                 ];
             });
 
@@ -67,7 +69,8 @@ class UserDashboardController extends Controller
             'data' => [
                 'user' => [
                     'name' => $user->display_name ?? $user->first_name . ' ' . $user->last_name,
-                    'avatar' => $user->dog_avatar ?? 'https://placedog.net/500/500',
+                    'avatar' => $user->owner_avatar, // Main avatar should be Owner, not Dog
+                    'dog_avatar' => $user->dog_avatar, // Explicitly return for profile loader
                     'plan' => ucfirst($user->plan ?? 'free'),
                     // Profile Data
                     'dog_name' => $user->dog_name,
@@ -81,6 +84,7 @@ class UserDashboardController extends Controller
                     'owner_bio' => $user->owner_bio,
                     'owner_avatar' => $user->owner_avatar,
                     'dog_cover_photo' => $user->dog_cover_photo,
+                    'dog_photos' => $user->dog_photos, // Add Gallery Photos
                 ],
                 'greeting' => $greeting,
                 'stats' => $stats,

@@ -39,6 +39,9 @@ class UserSeeder extends Seeder
                 'dog_bio' => null,
                 'dog_avatar' => null,
                 'dog_cover_photo' => null,
+                'owner_avatar' => null,
+                'dog_photos' => null,
+                'dog_personalities' => null,
                 'created_at' => now(),
                 'updated_at' => now()
             ],
@@ -65,6 +68,9 @@ class UserSeeder extends Seeder
                 'dog_bio' => null,
                 'dog_avatar' => null,
                 'dog_cover_photo' => null,
+                'owner_avatar' => null,
+                'dog_photos' => null,
+                'dog_personalities' => null,
                 'created_at' => now(),
                 'updated_at' => now()
             ],
@@ -89,40 +95,17 @@ class UserSeeder extends Seeder
                 'dog_sex' => 'female',
                 'dog_size' => 'small',
                 'dog_bio' => 'Energetic and playful, loves chasing balls and long walks. Looking for a companion to explore with!',
-                'dog_avatar' => '../assets/images/jorjee-one.jpg',
-                'dog_cover_photo' => '../assets/images/jorjee-three.jpg',
+                'dog_avatar' => '../../assets/images/jorjee-one.jpg',
+                'dog_cover_photo' => null, // Default to null so frontend shows default banner
+                'owner_avatar' => null, // Default to null to avoid relative path issues
+                'dog_photos' => json_encode([]), // Empty gallery
+                'dog_personalities' => 'Playful,Energetic,Friendly,Curious',
+                'dog_personalities' => 'Playful,Energetic,Friendly,Curious',
                 'created_at' => now(),
                 'updated_at' => now()
             ],
         ]);
 
-        // Create 5 more random users for testing reports
-        for ($i = 1; $i <= 5; $i++) {
-            DB::table('users')->insert([
-                'first_name' => 'TestUser' . $i,
-                'last_name' => 'Lastname' . $i,
-                'display_name' => 'Test User ' . $i,
-                'email' => 'user' . $i . '@test.com',
-                'password' => 'User1234',
-                'role' => 'user',
-                'status' => 'active',
-                'is_master_admin' => false,
-                'plan' => 'free',
-                'location' => 'Cebu City',
-                'owner_bio' => 'Just a test user.',
-                'signup_date' => now(),
-                'last_seen' => now(),
-                'dog_name' => 'Doggo ' . $i,
-                'dog_breed' => 'Mixed',
-                'dog_age' => rand(1, 10),
-                'dog_sex' => rand(0, 1) ? 'male' : 'female',
-                'dog_size' => 'medium',
-                'dog_bio' => 'Woof!',
-                'dog_avatar' => null,
-                'dog_cover_photo' => null,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-        }
+        // Random user generation removed to maintain clean state (1 Master, 1 Admin, 1 User)
     }
 }

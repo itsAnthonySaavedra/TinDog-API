@@ -2,6 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DiscoveryController;
+use App\Http\Controllers\SwipeController;
+use App\Http\Controllers\MatchController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 
@@ -19,7 +22,9 @@ Route::post('/register', [AuthController::class, 'register']);
 // Protected routes (Require Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
     // User Management
+    Route::get('/user/me', [UserController::class, 'me']); // Lightweight User Info
     Route::get('/users', [UserController::class, 'index']);       // List
+    Route::post('/users', [UserController::class, 'store']);      // Create
     Route::get('/users/{id}', [UserController::class, 'show']);   // View
     Route::put('/users/{id}', [UserController::class, 'update']); // Edit
     Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete
@@ -41,4 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings', [App\Http\Controllers\SystemSettingController::class, 'index']);
     Route::put('/settings', [App\Http\Controllers\SystemSettingController::class, 'update']);
     Route::get('/user/dashboard', [App\Http\Controllers\UserDashboardController::class, 'index']);
+    
+    // Phase 2: Discovery & Matching
+    Route::get('/discovery', [DiscoveryController::class, 'index']);
+    Route::post('/swipe', [SwipeController::class, 'store']);
+    Route::get('/matches', [MatchController::class, 'index']);
 });
