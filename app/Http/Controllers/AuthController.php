@@ -84,12 +84,10 @@ class AuthController extends Controller
         $validated = $validator->validated();
 
         try {
-            $user = User::where('email', $validated['email'])
-                ->where('role', 'user')
-                ->first();
+            $user = User::where('email', $validated['email'])->first();
 
             if (!$user) {
-                return response()->json(['success' => false, 'message' => 'Invalid user credentials.'], 401);
+                return response()->json(['success' => false, 'message' => 'Invalid credentials.'], 401);
             }
 
             // 1. Check if password matches Plain Text (Legacy Way - Migration)
@@ -99,22 +97,23 @@ class AuthController extends Controller
                 $user->save();
             } 
             // 2. Check if password matches the Hash (Secure Way)
-            // We check if it's a valid hash first to avoid "This password does not use the Bcrypt algorithm" error
             elseif (password_get_info($user->password)['algoName'] !== 'unknown' && Hash::check($validated['password'], $user->password)) {
                 // Password is secure and correct
             }
             // 3. Password is wrong
             else {
-                return response()->json(['success' => false, 'message' => 'Invalid user credentials.'], 401);
+                return response()->json(['success' => false, 'message' => 'Invalid credentials.'], 401);
             }
 
             // Create a token for the user
-            $token = $user->createToken('user-token')->plainTextToken;
+            $token = $user->createToken('auth-token')->plainTextToken;
 
             return response()->json([
                 'success' => true,
                 'userId' => $user->id,
                 'status' => $user->status,
+                'role' => $user->role,
+                'is_master_admin' => $user->is_master_admin,
                 'token' => $token
             ]);
 

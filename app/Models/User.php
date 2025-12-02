@@ -6,13 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes; // <-- 1. ADD THIS LINE
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, SoftDeletes; // <-- 2. ADD SoftDeletes HERE
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -41,6 +40,9 @@ class User extends Authenticatable
     'dog_bio',
     'dog_avatar',
     'dog_cover_photo',
+    'owner_avatar',
+    'dog_photos',
+    'dog_personalities',
     'instance_id'
     ];
 

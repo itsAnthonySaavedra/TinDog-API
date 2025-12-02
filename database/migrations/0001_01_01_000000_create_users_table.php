@@ -34,6 +34,9 @@ return new class extends Migration
             $table->text('dog_bio')->nullable();
             $table->string('dog_avatar')->nullable();
             $table->string('dog_cover_photo')->nullable();
+            $table->string('owner_avatar')->nullable();
+            $table->text('dog_photos')->nullable(); // JSON array of photo URLs
+            $table->string('dog_personalities')->nullable(); // Comma-separated or JSON
             $table->timestamps(); // This adds created_at and updated_at
         });
     }
