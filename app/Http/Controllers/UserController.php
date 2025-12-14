@@ -152,7 +152,7 @@ class UserController extends Controller
                 'display_name' => 'nullable|string|max:255',
                 'email'      => 'sometimes|email|unique:users,email,' . $id,
                 'status'     => 'sometimes|string|in:active,suspended,banned',
-                'location'   => 'nullable|string|max:255', // <-- Added Location
+                'location'   => 'nullable|string|max:255',
                 // Dog Profile Fields
                 'dog_name'   => 'nullable|string|max:255',
                 'dog_breed'  => 'nullable|string|max:255',
@@ -160,11 +160,18 @@ class UserController extends Controller
                 'dog_sex'    => 'nullable|string|in:male,female',
                 'dog_size'   => 'nullable|string|in:small,medium,large',
                 'dog_bio'    => 'nullable|string',
-                'dog_personalities' => 'nullable|string', // JSON or comma-separated
-                'dog_avatar' => 'nullable|string', // Base64 or URL
-                'owner_avatar' => 'nullable|string', // Owner's photo from registration
+                'dog_personalities' => 'nullable|string',
+                'dog_avatar' => 'nullable|string',
+                'owner_avatar' => 'nullable|string',
                 'dog_cover_photo' => 'nullable|string',
-                'dog_photos' => 'nullable|array', // JSON array or actual array
+                'dog_photos' => 'nullable|array',
+                // Discovery Preferences
+                'discovery_distance' => 'nullable|integer|min:1|max:100',
+                'discovery_age_max' => 'nullable|integer|min:1|max:20',
+                'discovery_dog_sex' => 'nullable|in:any,male,female',
+                'discovery_dog_size' => 'nullable|in:any,small,medium,large',
+                'is_visible' => 'boolean',
+                'preferences' => 'nullable|array', // Allow JSON/Array update
             ]);
 
             // 3. Auto-generate Display Name for Standard Users
@@ -221,22 +228,73 @@ class UserController extends Controller
             ], 500);
         }
     }
+    
     /**
      * Get current user info (Lightweight for Sidebar)
      */
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
+        $user->load('blockedUsers'); // Load blocked users
+        
         return response()->json([
             'success' => true,
-            'data' => [
-                'user' => [
-                    'name' => $user->display_name ?? $user->first_name . ' ' . $user->last_name,
-                    'avatar' => $user->owner_avatar, // Sidebar needs Owner Avatar
-                    'owner_avatar' => $user->owner_avatar,
-                    'plan' => ucfirst($user->plan ?? 'free'),
-                ]
-            ]
+            'data' => $user
+        ]);
+    }
+
+    /**
+     * Block a user
+     */
+    public function block(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            
+            if ($user->id == $id) {
+                return response()->json(['message' => 'You cannot block yourself.'], 400);
+            }
+
+            $user->blockedUsers()->syncWithoutDetaching([$id]);
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'User blocked successfully',
+                'blocked_users' => $user->blockedUsers
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Block failed', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Unblock a user
+     */
+    public function unblock(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            $user->blockedUsers()->detach($id);
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'User unblocked successfully',
+                'blocked_users' => $user->blockedUsers
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Unblock failed', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get blocked users list
+     */
+    public function blocked(Request $request)
+    {
+        $user = $request->user();
+        return response()->json([
+            'success' => true,
+            'data' => $user->blockedUsers
         ]);
     }
 }

@@ -43,8 +43,53 @@ class User extends Authenticatable
     'owner_avatar',
     'dog_photos',
     'dog_personalities',
-    'instance_id'
+    'instance_id',
+    // Discovery Preferences
+    'discovery_distance',
+    'discovery_age_max',
+    'discovery_dog_sex',
+    'discovery_dog_size',
+    'is_visible',
+    'preferences', // JSON column
+    'plan_status',
+    'next_billing_date',
     ];
+
+    /**
+     * Users I have blocked.
+     */
+    public function blockedUsers()
+    {
+        return $this->belongsToMany(User::class, 'blocked_users', 'user_id', 'blocked_user_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * My Invoices.
+     */
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'preferences' => 'array',
+            'dog_photos' => 'array',
+            'dog_personalities' => 'array',
+            'is_visible' => 'boolean',
+        ];
+    }
+
+
 
     /**
      * The attributes that should be hidden for serialization.
@@ -61,11 +106,14 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
+
+    public function messagesSent()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function messagesReceived()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
     }
 }

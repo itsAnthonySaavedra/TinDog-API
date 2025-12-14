@@ -29,6 +29,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']); // Edit
     Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete
 
+    // Block/Unblock
+    Route::post('/users/{id}/block', [UserController::class, 'block']);
+    Route::delete('/users/{id}/unblock', [UserController::class, 'unblock']);
+    Route::get('/users/blocked', [UserController::class, 'blocked']);
+
+    // Subscriptions & Invoices
+    Route::post('/subscription/subscribe', [App\Http\Controllers\SubscriptionController::class, 'subscribe']);
+    Route::post('/subscription/cancel', [App\Http\Controllers\SubscriptionController::class, 'cancel']);
+    Route::get('/user/invoices', function (Illuminate\Http\Request $request) {
+        return $request->user()->invoices;
+    });
+    Route::get('/user/invoices/{id}', function (Illuminate\Http\Request $request, $id) {
+        return $request->user()->invoices()->findOrFail($id);
+    });
+
     // Reports
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index']);
     Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store']); // Create Report
@@ -51,4 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/discovery', [DiscoveryController::class, 'index']);
     Route::post('/swipe', [SwipeController::class, 'store']);
     Route::get('/matches', [MatchController::class, 'index']);
+
+    // Phase 3: Messages
+    Route::get('/messages/{userId}', [App\Http\Controllers\MessageController::class, 'index']);
+    Route::post('/messages', [App\Http\Controllers\MessageController::class, 'store']);
 });

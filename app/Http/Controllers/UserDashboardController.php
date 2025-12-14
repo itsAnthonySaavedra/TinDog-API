@@ -23,21 +23,44 @@ class UserDashboardController extends Controller
             $greeting = 'Good Evening!';
         }
 
-        // 2. Stats (Placeholders for now until tables exist)
+        // 2. Stats (Real Data)
+        $newMatchesCount = \App\Models\UserMatch::where(function($q) use ($user) {
+                $q->where('user_id_1', $user->id)->orWhere('user_id_2', $user->id);
+            })
+            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->count();
+
+        // Unread Messages (Sum of unread_count in participants table)
+        $unreadMessagesCount = \App\Models\ConversationParticipant::where('user_id', $user->id)
+            ->sum('unread_count');
+
+        // Unread Conversations (Count of participants rows with unread_count > 0)
+        $unreadConversationsCount = \App\Models\ConversationParticipant::where('user_id', $user->id)
+            ->where('unread_count', '>', 0)
+            ->count();
+            
         $stats = [
-            'newMatches' => 0,
-            'unreadMessages' => 0,
-            'unreadConversations' => 0,
-            'profileViews' => 0, // We could implement a simple counter on User model later
+            'newMatches' => $newMatchesCount,
+            'unreadMessages' => (int)$unreadMessagesCount,
+            'unreadConversations' => $unreadConversationsCount,
+            'profileViews' => $user->profile_views ?? 0, 
             'currentPlan' => ucfirst($user->plan ?? 'free'),
         ];
 
         // 3. Pups Nearby (Random other users)
-        // 3. Pups Nearby (Real users only)
-        $pupsNearby = User::where('id', '!=', $user->id)
+        // 3. Pups Nearby (Real users, sorted by distance)
+        $currentUserLatitude = $user->latitude ?? 10.3157; // Default to Cebu if not set
+        $currentUserLongitude = $user->longitude ?? 123.8854;
+
+        // Haversine Formula for distance (in kilometers)
+        $rawSql = "(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))";
+
+        $pupsNearby = User::select('*')
+            ->selectRaw("{$rawSql} as distance_km", [$currentUserLatitude, $currentUserLongitude, $currentUserLatitude])
+            ->where('id', '!=', $user->id)
             ->where('role', 'user')
-            ->whereNotNull('dog_name') // Only show users who have set up their profile
-            ->inRandomOrder()
+            //->whereNotNull('dog_name') // Uncomment in prod
+            ->orderBy('distance_km', 'asc')
             ->take(3)
             ->get()
             ->map(function ($pup) {
@@ -45,7 +68,7 @@ class UserDashboardController extends Controller
                     'id' => $pup->id,
                     'name' => $pup->dog_name ?? $pup->display_name,
                     'avatar' => $pup->dog_avatar, 
-                    'distance' => rand(1, 10) . ' km away', // Mock distance is fine for now
+                    'distance' => number_format($pup->distance_km, 1) . ' km away',
                 ];
             });
 
