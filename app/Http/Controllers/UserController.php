@@ -181,6 +181,11 @@ class UserController extends Controller
                 $validated['display_name'] = trim($firstName . ' ' . $lastName);
             }
 
+            // Handle dog_personalities: Convert string "A, B, C" to array ["A", "B", "C"]
+            if (isset($validated['dog_personalities']) && is_string($validated['dog_personalities'])) {
+                $validated['dog_personalities'] = array_map('trim', explode(',', $validated['dog_personalities']));
+            }
+
             $targetUser->update($validated);
 
             return response()->json([
@@ -296,5 +301,43 @@ class UserController extends Controller
             'success' => true,
             'data' => $user->blockedUsers
         ]);
+    }
+    /**
+     * Change Password
+     */
+    public function changePassword(Request $request, $id): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+            
+            // Should match target or be Master Admin (but Master Admin shouldn't know current password of others)
+            // So we enforce strict self-update for password via this method.
+            if ($currentUser->id != $id) {
+                return response()->json(['message' => 'Unauthorized. You can only change your own password.'], 403);
+            }
+
+            $validated = $request->validate([
+                'current_password' => 'required',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
+
+            if (!\Illuminate\Support\Facades\Hash::check($validated['current_password'], $currentUser->password)) {
+                 return response()->json([
+                     'success' => false,
+                     'message' => 'Current password is incorrect.'
+                 ], 400); 
+            }
+
+            $currentUser->password = \Illuminate\Support\Facades\Hash::make($validated['password']);
+            $currentUser->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password updated successfully.'
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Error updating password', 'error' => $e->getMessage()], 500);
+        }
     }
 }

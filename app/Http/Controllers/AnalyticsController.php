@@ -6,76 +6,82 @@ use App\Models\User;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
+    /**
+     * Get file cache store to avoid hitting remote database for caching
+     * This stores cache in local filesystem instead of remote Supabase
+     */
+    private function fileCache()
+    {
+        return Cache::store('file');
+    }
+
     public function overview()
     {
-        $totalUsers = User::where('role', 'user')->count();
-        $openReports = Report::where('status', 'open')->count();
-        
-        // Revenue Calculation
-        // Labrador: 49, Mastiff: 99
-        $labradorCount = User::where('plan', 'labrador')->count();
-        $mastiffCount = User::where('plan', 'mastiff')->count();
-        $monthlyRevenue = ($labradorCount * 49) + ($mastiffCount * 99);
+        // Cache for 5 minutes (300 seconds) using LOCAL file cache
+        $data = $this->fileCache()->remember('analytics_overview', 300, function () {
+            $totalUsers = User::where('role', 'user')->count();
+            $openReports = Report::where('status', 'open')->count();
+            
+            $labradorCount = User::where('plan', 'labrador')->count();
+            $mastiffCount = User::where('plan', 'mastiff')->count();
+            $monthlyRevenue = ($labradorCount * 49) + ($mastiffCount * 99);
 
-        // System Status Check
-        try {
-            DB::connection()->getPdo();
-            $systemStatus = 'Online';
-        } catch (\Exception $e) {
-            $systemStatus = 'Database Error';
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
+            return [
                 'total_users' => $totalUsers,
                 'monthly_revenue' => $monthlyRevenue,
                 'open_reports' => $openReports,
-                'system_status' => $systemStatus
-            ]
+                'system_status' => 'Online'
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ]);
     }
 
     public function recentActivity()
     {
-        // 1. Get latest 5 users (Created)
-        $newUsers = User::where('role', 'user')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'type' => 'user',
-                    'message' => "New User: {$user->first_name} {$user->last_name} registered.",
-                    'time' => $user->created_at->diffForHumans(),
-                    'timestamp' => $user->created_at
-                ];
-            });
+        // Cache for 2 minutes using LOCAL file cache
+        $activities = $this->fileCache()->remember('analytics_recent_activity', 120, function () {
+            $newUsers = User::where('role', 'user')
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'type' => 'user',
+                        'message' => "New User: {$user->first_name} {$user->last_name} registered.",
+                        'time' => $user->created_at->diffForHumans(),
+                        'timestamp' => $user->created_at->toISOString()
+                    ];
+                });
 
-        // 2. Get latest 5 reports
-        $newReports = Report::with('reportedUser')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get()
-            ->map(function ($report) {
-                $reportedName = $report->reportedUser ? $report->reportedUser->display_name : 'Unknown User';
-                return [
-                    'type' => 'report',
-                    'message' => "New Report: Profile \"{$reportedName}\" was reported.",
-                    'time' => $report->created_at->diffForHumans(),
-                    'timestamp' => $report->created_at
-                ];
-            });
+            $newReports = Report::with('reportedUser')
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function ($report) {
+                    $reportedName = $report->reportedUser ? $report->reportedUser->display_name : 'Unknown User';
+                    return [
+                        'type' => 'report',
+                        'message' => "New Report: Profile \"{$reportedName}\" was reported.",
+                        'time' => $report->created_at->diffForHumans(),
+                        'timestamp' => $report->created_at->toISOString()
+                    ];
+                });
 
-        // Merge all and sort by timestamp descending
-        $activities = $newUsers->concat($newReports)
-            ->sortByDesc('timestamp')
-            ->take(10) // Take top 10 mixed events
-            ->values();
+            return $newUsers->concat($newReports)
+                ->sortByDesc('timestamp')
+                ->take(10)
+                ->values()
+                ->toArray();
+        });
 
         return response()->json([
             'success' => true,
@@ -85,120 +91,104 @@ class AnalyticsController extends Controller
 
     public function userGrowth()
     {
-        // Get users created in the last 30 days, grouped by date
-        $endDate = Carbon::now();
-        $startDate = Carbon::now()->subDays(29);
+        // Cache for 10 minutes using LOCAL file cache
+        $data = $this->fileCache()->remember('analytics_user_growth', 600, function () {
+            $endDate = Carbon::now();
+            $startDate = Carbon::now()->subDays(29);
 
-        $users = User::where('role', 'user')
-            ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->pluck('count', 'date');
+            $users = User::where('role', 'user')
+                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
+                ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get()
+                ->pluck('count', 'date');
 
-        // Fill in missing dates with 0
-        $data = [];
-        $labels = [];
-        for ($i = 0; $i < 30; $i++) {
-            $date = $startDate->copy()->addDays($i)->format('Y-m-d');
-            $labels[] = $startDate->copy()->addDays($i)->format('M d');
-            $data[] = $users[$date] ?? 0;
-        }
+            $data = [];
+            $labels = [];
+            for ($i = 0; $i < 30; $i++) {
+                $date = $startDate->copy()->addDays($i)->format('Y-m-d');
+                $labels[] = $startDate->copy()->addDays($i)->format('M d');
+                $data[] = $users[$date] ?? 0;
+            }
+
+            return [
+                'labels' => $labels,
+                'values' => $data
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'labels' => $labels,
-                'values' => $data
-            ]
+            'data' => $data
         ]);
     }
 
     public function demographics()
     {
-        $dogSizes = User::where('role', 'user')
-            ->whereNotNull('dog_size')
-            ->select('dog_size', DB::raw('count(*) as count'))
-            ->groupBy('dog_size')
-            ->pluck('count', 'dog_size');
+        // Cache for 10 minutes using LOCAL file cache
+        $data = $this->fileCache()->remember('analytics_demographics', 600, function () {
+            $dogSizes = User::where('role', 'user')
+                ->whereNotNull('dog_size')
+                ->select('dog_size', DB::raw('count(*) as count'))
+                ->groupBy('dog_size')
+                ->pluck('count', 'dog_size');
 
-        // Normalize keys to lowercase just in case
-        $normalizedSizes = [
-            'small' => $dogSizes['small'] ?? $dogSizes['Small'] ?? 0,
-            'medium' => $dogSizes['medium'] ?? $dogSizes['Medium'] ?? 0,
-            'large' => $dogSizes['large'] ?? $dogSizes['Large'] ?? 0,
-        ];
-
-        // For location, we might just return the raw list for now or top 5
-        // Since the frontend uses a static image for the map, we won't send location data yet
-        // unless we want to list top cities.
+            return [
+                'dog_sizes' => [
+                    'small' => $dogSizes['small'] ?? $dogSizes['Small'] ?? 0,
+                    'medium' => $dogSizes['medium'] ?? $dogSizes['Medium'] ?? 0,
+                    'large' => $dogSizes['large'] ?? $dogSizes['Large'] ?? 0,
+                ]
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'dog_sizes' => $normalizedSizes
-            ]
+            'data' => $data
         ]);
     }
 
     public function engagement()
     {
-        // DAU: Users active in the last 24 hours
-        // We need a 'last_seen' column. If it doesn't exist or isn't populated, this will be 0.
-        // Assuming 'last_seen' is a timestamp.
-        
-        // For the chart (last 30 days DAU), we can't really reconstruct this history 
-        // without a separate 'activity_logs' table.
-        // So for the chart, we might have to stick to a placeholder or 
-        // just show the *current* DAU as a single number if we can't chart it.
-        // However, the user asked to avoid mock data.
-        // Strategy: We will return the CURRENT DAU count.
-        // For the chart, we will return an empty array or a single point if we can't derive history.
-        // OR, we can just return the daily signups as a proxy for "New Active Users" if that's useful?
-        // Let's stick to returning current stats.
-        
-        $currentDAU = User::where('role', 'user')
-            ->where('last_seen', '>=', Carbon::now()->subDay())
-            ->count();
+        // Cache for 5 minutes using LOCAL file cache
+        $data = $this->fileCache()->remember('analytics_engagement', 300, function () {
+            $currentDAU = User::where('role', 'user')
+                ->where('last_seen', '>=', Carbon::now()->subDay())
+                ->count();
+
+            return [
+                'current_dau' => $currentDAU,
+                'dau_history' => []
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'current_dau' => $currentDAU,
-                // We can't give a 30-day trend of DAU without historical data.
-                // We'll send null for the chart data to indicate "No Data" or handle it on frontend.
-                'dau_history' => [] 
-            ]
+            'data' => $data
         ]);
     }
 
     public function revenue()
     {
-        $labradorCount = User::where('plan', 'labrador')->count();
-        $mastiffCount = User::where('plan', 'mastiff')->count();
+        // Cache for 10 minutes using LOCAL file cache (this was the slowest endpoint)
+        $data = $this->fileCache()->remember('analytics_revenue', 600, function () {
+            $labradorCount = User::where('plan', 'labrador')->count();
+            $mastiffCount = User::where('plan', 'mastiff')->count();
 
-        // MRR Growth (Derived)
-        // We'll calculate what the MRR *was* at the end of each of the last 6 months.
-        $mrrHistory = [];
-        $labels = [];
+            $labels = [];
+            $mrrHistory = [];
+            
+            for ($i = 5; $i >= 0; $i--) {
+                $date = Carbon::now()->subMonths($i)->endOfMonth();
+                $labels[] = $date->format('M Y');
+                
+                $lCount = User::where('plan', 'labrador')->where('created_at', '<=', $date)->count();
+                $mCount = User::where('plan', 'mastiff')->where('created_at', '<=', $date)->count();
+                $mrrHistory[] = ($lCount * 49) + ($mCount * 99);
+            }
 
-        for ($i = 5; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i)->endOfMonth();
-            
-            // Count users who existed by this date
-            $lCount = User::where('plan', 'labrador')->where('created_at', '<=', $date)->count();
-            $mCount = User::where('plan', 'mastiff')->where('created_at', '<=', $date)->count();
-            
-            $revenue = ($lCount * 49) + ($mCount * 99);
-            
-            $labels[] = $date->format('M Y');
-            $mrrHistory[] = $revenue;
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
+            return [
                 'breakdown' => [
                     'labrador' => $labradorCount * 49,
                     'mastiff' => $mastiffCount * 99
@@ -207,7 +197,12 @@ class AnalyticsController extends Controller
                     'labels' => $labels,
                     'values' => $mrrHistory
                 ]
-            ]
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ]);
     }
 }

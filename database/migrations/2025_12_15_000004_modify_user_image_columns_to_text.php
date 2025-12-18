@@ -12,13 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Check if column exists first to avoid dupes if re-running
-            if (!Schema::hasColumn('users', 'latitude')) {
-                $table->decimal('latitude', 10, 8)->nullable();
-            }
-            if (!Schema::hasColumn('users', 'longitude')) {
-                $table->decimal('longitude', 11, 8)->nullable();
-            }
+            $table->text('dog_avatar')->nullable()->change();
+            $table->text('dog_cover_photo')->nullable()->change();
+            $table->text('owner_avatar')->nullable()->change();
         });
     }
 
@@ -28,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['latitude', 'longitude']);
+            $table->string('dog_avatar', 255)->nullable()->change();
+            $table->string('dog_cover_photo', 255)->nullable()->change();
+            $table->string('owner_avatar', 255)->nullable()->change();
         });
     }
 };

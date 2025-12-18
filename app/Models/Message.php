@@ -13,6 +13,10 @@ class Message extends Model
         'is_seen',
     ];
 
+    protected $casts = [
+        'is_seen' => 'boolean',
+    ];
+
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');

@@ -15,7 +15,7 @@ class SubscriptionController extends Controller
     public function subscribe(Request $request)
     {
         $request->validate([
-            'plan' => 'required|in:labrador,mastiff',
+            'plan' => 'required|in:chihuahua,labrador,mastiff',
             'billing' => 'required|in:monthly,annual',
         ]);
 
@@ -33,6 +33,9 @@ class SubscriptionController extends Controller
         } elseif ($newPlan === 'mastiff') {
             $price = ($billingCycle === 'annual') ? 990 : 99;
             $description = "Mastiff Plan - " . ucfirst($billingCycle);
+        } elseif ($newPlan === 'chihuahua') {
+            $price = 0;
+            $description = "Chihuahua Plan (Free) - " . ucfirst($billingCycle);
         }
 
         // Logic:
