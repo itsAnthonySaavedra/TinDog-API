@@ -19,6 +19,10 @@ Route::post('/admin-login', [AuthController::class, 'adminLogin']);
 Route::post('/user-login', [AuthController::class, 'userLogin']);
 Route::post('/register', [AuthController::class, 'register']);
 
+// Debug route (temporary - for performance testing)
+Route::get('/debug/performance', [App\Http\Controllers\DebugController::class, 'performance']);
+Route::get('/debug/messages/{userId}/{otherUserId}', [App\Http\Controllers\DebugController::class, 'testMessages']);
+
 // Protected routes (Require Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
     // User Management
@@ -27,7 +31,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [UserController::class, 'store']);      // Create
     Route::get('/users/{id}', [UserController::class, 'show']);   // View
     Route::put('/users/{id}', [UserController::class, 'update']); // Edit
+    Route::put('/users/{id}/password', [UserController::class, 'changePassword']); // Change Password
     Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete
+    
+    // Admin Features
+    Route::get('/admin/matches', [App\Http\Controllers\AdminMatchController::class, 'index']);
 
     // Block/Unblock
     Route::post('/users/{id}/block', [UserController::class, 'block']);
@@ -56,6 +64,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/analytics/demographics', [App\Http\Controllers\AnalyticsController::class, 'demographics']);
     Route::get('/analytics/engagement', [App\Http\Controllers\AnalyticsController::class, 'engagement']);
     Route::get('/analytics/revenue', [App\Http\Controllers\AnalyticsController::class, 'revenue']);
+
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index']);
 
     // System Settings
     Route::get('/settings', [App\Http\Controllers\SystemSettingController::class, 'index']);

@@ -95,7 +95,10 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'require',
+            'sslmode' => env('DB_SSLMODE', 'prefer'), // Changed from 'require' to prevent Windows hangs
+            'options' => [
+                PDO::ATTR_EMULATE_PREPARES => true, // Required for Supabase Transaction Pooler compatibility
+            ],
         ],
 
         'sqlsrv' => [

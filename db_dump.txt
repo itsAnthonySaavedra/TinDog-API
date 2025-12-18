@@ -1,0 +1,11 @@
+--- USERS ---
+ID: 19 | Name: Frances Rian | Dog: Kirk | Email: frances@user.com
+ID: 18 | Name: Roel Anthony | Dog: Jorjee | Email: roel@user.com
+ID: 8 | Name: Roel Anthony | Dog:  | Email: master@admin.com
+
+--- MATCHES ---
+Match ID: 1 | User1: 18 | User2: 19
+
+--- SWIPES ---
+Swipe ID: 1 | User: 18 | Target: 19 | Type: like
+Swipe ID: 2 | User: 19 | Target: 18 | Type: like
